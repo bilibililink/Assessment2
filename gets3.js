@@ -65,7 +65,7 @@ async function senti_analysis(rsp){
         const ngrams = new NGrams({ byWord: true });
         const freqs = ngrams.getNGramsFreqs(lines, 1);
         const spellCheck = new SpellCheck({ features: freqs });
-        const actual = spellCheck.check(['knowldge', 'thas', 'prejudize']);
+        const actual = spellCheck.check(['knowldge', 'thas', 'prejudize', 'pig', 'university', 'brackish', 'nature', 'slyvan', 'intellectual']);
         console.log(actual);
 
         const response = await manager.process('en', tweets);
