@@ -170,8 +170,7 @@ async function senti_analysis(rsp){
         </script>
         </body>
         </html>` +
-        `<p style="color:#7E7E7E"> Positive: ${totalPositive}   Negative: ${totalNegative}   Neutral: ${totalNeutral}   Total Tweets: ${totalTweets}</p>`
-        '<script>d3.selectAll("p").transition().style("color","black").duration(3000);</script>'
+        `<p> Positive: ${totalPositive}   Negative: ${totalNegative}   Neutral: ${totalNeutral}   Total Tweets: ${totalTweets}</p>`
 
     for(let i = 0; i < rsp.length; i++){
         tweets = rsp[i].text;
@@ -184,11 +183,10 @@ async function senti_analysis(rsp){
         const actual = spellCheck.check(['knowldge', 'thas', 'prejudize']);
         console.log(actual);
         
-        s += '<center><div style="border: 1px solid black;padding: 15px;background-color:  #BFBFBF;width: 1000px;">' +
-            `<p style="color:#BFBFBF"> ${tweets} </p>` +
-            `<p style="color:#BFBFBF"> Sentiment Analysis: ${response.sentiment.vote} </p>` +
-            '<script>d3.selectAll("p").transition().style("color","black").duration(3000);</script>' +
-            '</center>';
+        s += '<center><div style="border: 1px solid black;padding: 15px;background-color: white;width: 1000px;">' +
+            `<p> ${tweets} </p>` +
+            `<p> Sentiment Analysis: ${response.sentiment.vote} </p>` +
+            '</center>'
         }
         return s;
 }
@@ -221,7 +219,7 @@ async function createPage(rsp) {
         <head>
         <style>
         body {
-            background-color: #7E7E7E;
+            background-color: #E9E9E9;
         }
 
         ul {
@@ -233,7 +231,7 @@ async function createPage(rsp) {
             display: table-cell;
             height: 50;
             width: 800px;
-            background: #BFBFBF;
+            background: lightgrey;
         }
 
         li a {
@@ -251,20 +249,17 @@ async function createPage(rsp) {
         <title>AU News</title>
         </head>` +
         '<body>' +
-        '<h1 style="text-align: center;font-size: 55px; color: #7E7E7E;font-family: Times New Roman", Times, serif;">' + `Sport Tweets` + '</h1>' +
-        '<script>d3.selectAll("h1").transition().style("color","black").duration(3000);</script>' +
+        '<h1 style="text-align: center;font-size: 55px;font-family: Times New Roman", Times, serif;>' + `Sport Tweets` + '</h1>' +
         `<script type = "text/javascript" src="gets3.js"></script>` +
-        //`<button name="button" type="button" onclick="getAllRules()">Stop Stream</button>` +
+        `<button name="button" type="button" onclick="getAllRules()">Stop Stream</button>` +
         '<ul>' + 
-        '<li ><a style="color:#BFBFBF" href="/search/basketball">Basketball</a></li>' +
-        '<li ><a style="color:#BFBFBF" href="/search/cricket">Cricket</a></li>' +
-        '<li ><a style="color:#BFBFBF" href="/search/soccer">Soccer</a></li>' +
-        '<li ><a style="color:#BFBFBF" href="/search/tennis">Tennis</a></li>' +
-        '<li ><a style="color:#BFBFBF" href="/search/swimming">Swimming</a></li>' +
-        '<script>d3.selectAll("a").transition().style("color","black").duration(3000);</script>' +
+        '<li><a href="/search/basketball">Basketball</a></li>' +
+        '<li><a href="/search/cricket">Cricket</a></li>' +
+        '<li><a href="/search/football">Football</a></li>' +
+        '<li><a href="/search/tennis">Tennis</a></li>' +
+        '<li><a href="/search/swimming">Swimming</a></li>' +
         '</ul>' +
-        '<p style="color:#BFBFBF">' + result + '</p>' +
-        '<script>d3.selectAll("p").transition().style("color","black").duration(3000);</script>' +
+        '<p>' + result + '</p>' +
         '</body></html>';
     return str;
 }
