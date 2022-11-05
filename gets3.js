@@ -9,6 +9,15 @@ const { NlpManager } = require('node-nlp');
 const { SpellCheck } = require('@nlpjs/similarity');
 const { NGrams } = require('@nlpjs/utils');
 const needle = require('needle');
+const redis = require('redis');
+
+// This section will change for Cloud Services 
+// Redis setup
+const redisClient = redis.createClient(); 
+redisClient.connect()
+.catch((err) => { console.log(err);
+});
+
 
 // Set the region 
 AWS.config.update({region: 'ap-southeast-2'});
@@ -19,70 +28,43 @@ const bucketName = "n10533915-assignment-2";
 
 app.get("/", (req, res) => { 
 
-    const params = { Bucket: bucketName, Key: 'basketball'};
-    s3.getObject(params) 
-    .promise() 
-    .then(async(result) => {
-        // Serve from S3
-        const resultJSON = JSON.parse(result.Body);
-        const s = await createPage(resultJSON);
-        res.write(s);
-        res.end();
-    })
-    .catch((error) => {
-        console.error(error);
+    key = 'basketball';
+
+    redisClient.get(key).then(async(result) => {
+        if(result){
+            const resultJSON = JSON.parse(result);
+            const cache = await createPage(resultJSON);
+            res.write(cache);
+            res.end();
+            console.log("From cache");
+        }
+        else{
+            // Check S3
+            const params = { Bucket: bucketName, Key: key };
+            s3.getObject(params) 
+            .promise() 
+            .then(async(result) => {
+            // Serve from S3
+            const resultJSON = JSON.parse(result.Body);
+            //const json = JSON.parse(result);
+            const s = await createPage(resultJSON);
+            res.write(s);
+            res.end();
+            console.log("tweets from S3");
+
+            //also store it in the cache
+            redisClient.setEx(
+                key,
+                3600,
+                JSON.stringify([...resultJSON])
+                )
+        })
+            .catch((error) => {
+                console.error(error);
+            })
+        }
     })
 })
-
-//Twitter
-const token = "AAAAAAAAAAAAAAAAAAAAAMlKggEAAAAAfYFr4k5UGb97ZKxcyWq9klt7798%3DX94wLbkAkfZ3z5CJMpPQetxFyKq5FeullOvkvutFLVJCiXImoX";
-const rulesURL = 'https://api.twitter.com/2/tweets/search/stream/rules';
-
-async function getAllRules() {
-    console.log("clicked");
-
-    const response = await needle('get', rulesURL, {
-        headers: {
-            "authorization": `Bearer ${token}`
-        }
-    })
-
-    if (response.statusCode !== 200) {
-        console.log("Error:", response.statusMessage, response.statusCode)
-        throw new Error(response.body);
-    }
-
-    return (response.body);
-}
-
-async function deleteAllRules(rules) {
-
-    if (!Array.isArray(rules.data)) {
-        return null;
-    }
-
-    const ids = rules.data.map(rule => rule.id);
-
-    const data = {
-        "delete": {
-            "ids": ids
-        }
-    }
-
-    const response = await needle('post', rulesURL, data, {
-        headers: {
-            "content-type": "application/json",
-            "authorization": `Bearer ${token}`
-        }
-    })
-
-    if (response.statusCode !== 200) {
-        throw new Error(response.body);
-    }
-
-    return (response.body);
-
-}
 
 async function senti_analysis(rsp){
 
@@ -180,7 +162,7 @@ async function senti_analysis(rsp){
         const ngrams = new NGrams({ byWord: true });
         const freqs = ngrams.getNGramsFreqs(lines, 1);
         const spellCheck = new SpellCheck({ features: freqs });
-        const actual = spellCheck.check(['knowldge', 'thas', 'prejudize', 'pig', 'university', 'brackish', 'nature', 'slyvan', 'intellectual']);
+        const actual = spellCheck.check(['knowldge', 'thas', 'prejudize', 'pig','university','brackish','nature','slvyan','intellectual']);
         console.log(actual);
         
         s += '<center><div style="border: 1px solid black;padding: 15px;background-color: white;width: 1000px;">' +
@@ -189,23 +171,6 @@ async function senti_analysis(rsp){
             '</center>'
         }
         return s;
-}
-
-function deleteRules(){
-    let currentRules;
-    currentRules = getAllRules();
-
-    try {
-        // Gets the complete list of rules currently applied to the stream
-        currentRules = getAllRules();
-
-        // Delete all rules. Comment the line below if you want to keep your existing rules.
-        deleteAllRules(currentRules);
-        console.log("Rules Deleted");
-
-    } catch (e) {
-        console.error(e);
-    }
 }
 
 
@@ -246,12 +211,10 @@ async function createPage(rsp) {
         background-color: gray;
         }
         </style>
-        <title>AU News</title>
+        <title>Sport</title>
         </head>` +
         '<body>' +
         '<h1 style="text-align: center;font-size: 55px;font-family: Times New Roman", Times, serif;>' + `Sport Tweets` + '</h1>' +
-        `<script type = "text/javascript" src="gets3.js"></script>` +
-        `<button name="button" type="button" onclick="getAllRules()">Stop Stream</button>` +
         '<ul>' + 
         '<li><a href="/search/basketball">Basketball</a></li>' +
         '<li><a href="/search/cricket">Cricket</a></li>' +
