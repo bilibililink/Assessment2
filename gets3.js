@@ -1,3 +1,10 @@
+// Load the AWS SDK for Node.js
+var AWS = require('aws-sdk');
+const express = require('express');
+const app = express();
+require('dotenv').config();
+const axios = require('axios');
+const sportRouter = require('./sport');
 const { NlpManager } = require('node-nlp');
 const { SpellCheck } = require('@nlpjs/similarity');
 const { NGrams } = require('@nlpjs/utils');
@@ -5,30 +12,25 @@ const needle = require('needle');
 
 // Set the region 
 AWS.config.update({region: 'ap-southeast-2'});
-@@ -16,22 +17,8 @@ AWS.config.update({region: 'ap-southeast-2'});
+
+// Create S3 service object
 const s3 = new AWS.S3({ apiVersion: "2006-03-01",region:'ap-southeast-2' });
 const bucketName = "n10533915-assignment-2"; 
 
-//supplying the fields needed for a valid request
-function createSentimentOptions() {
-    const senti_options = {
-        hostname: 'api.meaningcloud.com',
-        port: 443,
-        path: '/sentiment-2.1?',
-        method: 'GET'
-    }
-    const senti_str = '&key=c1ec2418fb06b967149ea764d276049f';
-    senti_options.path += senti_str;
-    return senti_options;
-}
-
 app.get("/", (req, res) => { 
-
 
     const params = { Bucket: bucketName, Key: 'basketball'};
     s3.getObject(params) 
     .promise() 
-@@ -47,29 +34,73 @@ app.get("/", (req, res) => {
+    .then(async(result) => {
+        // Serve from S3
+        const resultJSON = JSON.parse(result.Body);
+        const s = await createPage(resultJSON);
+        res.write(s);
+        res.end();
+    })
+    .catch((error) => {
+        console.error(error);
     })
 })
 
@@ -94,17 +96,6 @@ async function senti_analysis(rsp){
     await manager.train();
     manager.save(); 
 
-    for(let i = 0; i < rsp.length; i++){
-        tweets = rsp[i].text;
-
-
-        const lines = tweets.split(/\r?\n/);
-        const ngrams = new NGrams({ byWord: true });
-        const freqs = ngrams.getNGramsFreqs(lines, 1);
-        const spellCheck = new SpellCheck({ features: freqs });
-        const actual = spellCheck.check(['knowldge', 'thas', 'prejudize', 'pig', 'university', 'brackish', 'nature', 'slyvan', 'intellectual']);
-        console.log(actual);
-
     for(let j = 0; j < rsp.length; j++){
         tweets = rsp[j].text;
         const response = await manager.process('en', tweets);
@@ -113,7 +104,10 @@ async function senti_analysis(rsp){
 
         if(response.sentiment.vote == "positive"){
             totalPositive++;
-@@ -80,26 +111,114 @@ async function senti_analysis(rsp){
+        }
+        else if (response.sentiment.vote == "negative"){
+            totalNegative++;
+        }
         else{
             totalNeutral++;
         }
@@ -176,8 +170,7 @@ async function senti_analysis(rsp){
         </script>
         </body>
         </html>` +
-        `<p style="color:#7E7E7E"> Positive: ${totalPositive}   Negative: ${totalNegative}   Neutral: ${totalNeutral}   Total Tweets: ${totalTweets}</p>`
-        '<script>d3.selectAll("p").transition().style("color","black").duration(3000);</script>'
+        `<p> Positive: ${totalPositive}   Negative: ${totalNegative}   Neutral: ${totalNeutral}   Total Tweets: ${totalTweets}</p>`
 
     for(let i = 0; i < rsp.length; i++){
         tweets = rsp[i].text;
@@ -189,16 +182,12 @@ async function senti_analysis(rsp){
         const spellCheck = new SpellCheck({ features: freqs });
         const actual = spellCheck.check(['knowldge', 'thas', 'prejudize']);
         console.log(actual);
-
-        s += '<center><div style="border: 1px solid black;padding: 15px;background-color:  #BFBFBF;width: 1000px;">' +
-            `<p style="color:#BFBFBF"> ${tweets} </p>` +
-            `<p style="color:#BFBFBF"> Sentiment Analysis: ${response.sentiment.vote} </p>` +
-            '<script>d3.selectAll("p").transition().style("color","black").duration(3000);</script>' +
-            '</center>';
+        
+        s += '<center><div style="border: 1px solid black;padding: 15px;background-color: white;width: 1000px;">' +
+            `<p> ${tweets} </p>` +
+            `<p> Sentiment Analysis: ${response.sentiment.vote} </p>` +
+            '</center>'
         }
-        s += `<p style="color:#7E7E7E"> Positive: ${totalPositive}   Negative: ${totalNegative}   Neutral: ${totalNeutral}</p>` +
-        '<script>d3.selectAll("p").transition().style("color","black").duration(3000);</script>'
-    return s;
         return s;
 }
 
@@ -223,36 +212,61 @@ function deleteRules(){
 async function createPage(rsp) {
     //Headers and opening body, then main content and close 
     const result = await senti_analysis(rsp);
-
+    
     const str = '<!DOCTYPE html>' +
         '<meta charset="UTF-8">' +
         `<html>
         <head>
-        <script type = "text/javascript" src = "https://d3js.org/d3.v4.min.js"></script>
         <style>
         body {
-            background-color: #7E7E7E;
-@@ -134,6 +253,8 @@ async function createPage(rsp) {
+            background-color: #E9E9E9;
+        }
+
+        ul {
+        margin: 0;
+        padding: 0;
+        }
+
+        li {
+            display: table-cell;
+            height: 50;
+            width: 800px;
+            background: lightgrey;
+        }
+
+        li a {
+        display: block;
+        color: black;
+        text-align: center;
+        padding: 20px 16px;
+        text-decoration: none;
+        }
+
+        li a:hover {
+        background-color: gray;
+        }
+        </style>
+        <title>AU News</title>
+        </head>` +
         '<body>' +
-        '<h1 style="text-align: center;font-size: 55px; color: #7E7E7E;font-family: Times New Roman", Times, serif;">' + `Sport Tweets` + '</h1>' +
-        '<script>d3.selectAll("h1").transition().style("color","black").duration(3000);</script>' +
+        '<h1 style="text-align: center;font-size: 55px;font-family: Times New Roman", Times, serif;>' + `Sport Tweets` + '</h1>' +
         `<script type = "text/javascript" src="gets3.js"></script>` +
-        //`<button name="button" type="button" onclick="getAllRules()">Stop Stream</button>` +
+        `<button name="button" type="button" onclick="getAllRules()">Stop Stream</button>` +
         '<ul>' + 
-        '<li ><a style="color:#BFBFBF" href="/search/basketball">Basketball</a></li>' +
-        '<li ><a style="color:#BFBFBF" href="/search/cricket">Cricket</a></li>' +
-        '<li ><a style="color:#BFBFBF" href="/search/soccer">Soccer</a></li>' +
-        '<li ><a style="color:#BFBFBF" href="/search/tennis">Tennis</a></li>' +
-        '<li ><a style="color:#BFBFBF" href="/search/swimming">Swimming</a></li>' +
-        '<script>d3.selectAll("a").transition().style("color","black").duration(3000);</script>' +
+        '<li><a href="/search/basketball">Basketball</a></li>' +
+        '<li><a href="/search/cricket">Cricket</a></li>' +
+        '<li><a href="/search/football">Football</a></li>' +
+        '<li><a href="/search/tennis">Tennis</a></li>' +
+        '<li><a href="/search/swimming">Swimming</a></li>' +
         '</ul>' +
-        '<p style="color:#BFBFBF">' + result + '</p>' +
-        '<script>d3.selectAll("p").transition().style("color","black").duration(3000);</script>' +
+        '<p>' + result + '</p>' +
         '</body></html>';
     return str;
 }
+
 //redirect search requests to the external news router
 app.use('/search?', sportRouter);
+
 app.listen(3000, () => {
     console.log("Server listening on port: ", 3000);
 });
