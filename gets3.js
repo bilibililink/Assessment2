@@ -9,15 +9,6 @@ const { NlpManager } = require('node-nlp');
 const { SpellCheck } = require('@nlpjs/similarity');
 const { NGrams } = require('@nlpjs/utils');
 const needle = require('needle');
-const redis = require('redis');
-
-// This section will change for Cloud Services 
-// Redis setup
-const redisClient = redis.createClient(); 
-redisClient.connect()
-.catch((err) => { console.log(err);
-});
-
 
 // Set the region 
 AWS.config.update({region: 'ap-southeast-2'});
