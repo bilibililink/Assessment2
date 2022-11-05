@@ -29,40 +29,20 @@ const bucketName = "n10533915-assignment-2";
 app.get("/", (req, res) => { 
 
     key = 'basketball';
-
-    redisClient.get(key).then(async(result) => {
-        if(result){
-            const resultJSON = JSON.parse(result);
-            const cache = await createPage(resultJSON);
-            res.write(cache);
-            res.end();
-            console.log("From cache");
-        }
-        else{
-            // Check S3
-            const params = { Bucket: bucketName, Key: key };
-            s3.getObject(params) 
-            .promise() 
-            .then(async(result) => {
-            // Serve from S3
-            const resultJSON = JSON.parse(result.Body);
-            //const json = JSON.parse(result);
-            const s = await createPage(resultJSON);
-            res.write(s);
-            res.end();
-            console.log("tweets from S3");
-
-            //also store it in the cache
-            redisClient.setEx(
-                key,
-                3600,
-                JSON.stringify([...resultJSON])
-                )
-        })
-            .catch((error) => {
-                console.error(error);
-            })
-        }
+    // Check S3
+    const params = { Bucket: bucketName, Key: key };
+    s3.getObject(params) 
+    .promise() 
+    .then(async(result) => {
+    // Serve from S3
+    const resultJSON = JSON.parse(result.Body);
+    //const json = JSON.parse(result);
+    const s = await createPage(resultJSON);
+    res.write(s);
+    res.end();
+    })
+    .catch((error) => {
+        console.error(error);
     })
 })
 
