@@ -144,7 +144,8 @@ function streamConnect(retryAttempt) {
         try {
             const json = JSON.parse(data);
             const tags = json.matching_rules[0].tag;
-            const responseJSON = json.data; 
+            //const responseJSON = json.data; 
+            console.log(json);
             s3Key = `${tags}`;
 
             // Check S3
@@ -179,11 +180,12 @@ function streamConnect(retryAttempt) {
                         console.log(`Successfully create a key: ${s3Key}`);
                         });
                     }
+                    
                     //also store it in the cache
                     redisClient.setEx(
                     s3Key,
                     3600,
-                    JSON.stringify([json.data, ...resultJSON])
+                    JSON.stringify([json.data])
                     )
                 })
 
